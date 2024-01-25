@@ -108,7 +108,7 @@ Rnorm-η-implies-≡ : {n₁ : ℕ} {n₂ : T₀ ι}
                   → ⟦ numeral n₁ ⟧₀ ≡ ⟦ n₂ ⟧₀
 Rnorm-η-implies-≡ {n₁} {n₂} Rnorm-ns =
  ⟦ numeral n₁ ⟧₀ ≡⟨ ⟦numeral⟧₀ n₁ ⟩
- n₁              ≡⟨ ≡-symm (Rnorm-ns η₁≡η₁ β₁≡β₁) ⟩
+ n₁              ≡⟨ ≡-symm (Rnorm-ns {ι} η₁≡η₁ β₁≡β₁) ⟩ -- TODO look at here Bruno
  ⟦ n₂ ⟧₀ ∎
  where
   η₁ : ℕ → ℕ
@@ -161,6 +161,27 @@ church-encode-kleisli-extension {A} (β ϕ n) f₁ f₂ f₁≡f₂ {η₁} {η�
   ϕ₁≡ϕ₂ : ϕ₁ ≡ ϕ₂
   ϕ₁≡ϕ₂ {i} {.i} refl = church-encode-kleisli-extension (ϕ i) f₁ f₂ f₁≡f₂ η₁≡η₂ β₁≡β₂
 
+church-encode-kleisli-extension' : {A : type} (d : B ℕ)
+                                → (f₁ : ℕ → B ℕ) (f₂ : {A : type} → T₀ (ι ⇒ ⌜B⌝ ι A))
+                                → ((i : ℕ) → Rnorm (f₁ i) (f₂ · numeral i))
+                                → church-encode (kleisli-extension f₁ d)
+                                  ≡[ ⌜B⌝ ι A ]  ⟦ ⌜kleisli-extension⌝ · f₂ ⟧₀ (church-encode d)
+church-encode-kleisli-extension' {A} (η n) f₁ f₂ f₁≡f₂ =
+ church-encode (f₁ n)                             ≡⟨ ≡-symm {⌜B⌝ ι A} (f₁≡f₂ n) ⟩
+ ⟦ f₂ ⟧₀ ⟦ numeral n ⟧₀                           ≡＝⟨ ≡-refl₀ f₂ (⟦numeral⟧₀ n) ⟩
+ ⟦ ⌜kleisli-extension⌝ · f₂ ⟧₀ (church-encode (η n)) ∎
+church-encode-kleisli-extension' {A} (β ϕ n) f₁ f₂ f₁≡f₂ {η₁} {η₂} η₁≡η₂ {β₁} {β₂} β₁≡β₂ =
+ β₁≡β₂ ϕ₁≡ϕ₂ refl
+ where
+  ϕ₁ : ℕ → 〖 A 〗
+  ϕ₁ i = church-encode (kleisli-extension f₁ (ϕ i)) η₁ β₁
+
+  ϕ₂ : ℕ → 〖 A 〗
+  ϕ₂ i = kleisli-extension⋆ ⟦ f₂ ⟧₀ (church-encode (ϕ i)) η₂ β₂
+
+  ϕ₁≡ϕ₂ : ϕ₁ ≡ ϕ₂
+  ϕ₁≡ϕ₂ {i} {.i} refl = church-encode-kleisli-extension (ϕ i) f₁ f₂ f₁≡f₂ η₁≡η₂ β₁≡β₂
+
 -- TODO maybe move this?
 ⟦⌜Kleisli-extension⌝⟧ : {X A σ : type} {Γ Δ : Cxt} (xs : 【 Γ 】) (ys : 【 Δ 】)
                       → ⟦ ⌜Kleisli-extension⌝ {X} {A} {σ} ⟧ xs
@@ -187,7 +208,7 @@ Rnorm-kleisli-lemma {ι} f₁ f₂ Rnorm-fs n₁ n₂ Rnorm-ns {A} =
  church-encode (kleisli-extension f₁ n₁)       ∎
  where
   I : ⟦ ⌜kleisli-extension⌝ · f₂ · n₂ ⟧₀ ≡ kleisli-extension⋆ ⟦ f₂ ⟧₀ (church-encode n₁)
-  I = ≡-refl₀ (⌜kleisli-extension⌝ · f₂) Rnorm-ns
+  I = ≡-refl₀ (⌜kleisli-extension⌝ · f₂) (Rnorm-ns {A})
 
   II : church-encode (kleisli-extension f₁ n₁) ≡ kleisli-extension⋆ ⟦ f₂ ⟧₀ (church-encode n₁)
   II = church-encode-kleisli-extension n₁ f₁ f₂ Rnorm-fs
@@ -230,7 +251,7 @@ Rnorm-kleisli-lemma {σ ⇒ τ} f₁ f₂ Rnorm-fs n₁ n₂ Rnorm-ns u₁ u₂ 
 church-encode-is-natural : {g₁ g₂ :  ℕ → ℕ} (d : B ℕ)
                          → g₁ ≡ g₂
                          → {A : type}
-                         → B⋆-functor g₁ (church-encode d)
+                         → ⟦ ⌜B-functor⌝ ⟧₀ g₁ (church-encode d)
                            ≡[ ⌜B⌝ ι A ] church-encode (B-functor g₂ d)
 church-encode-is-natural (η n) g₁≡g₂ {A} η₁≡η₂ β₁≡β₂ = η₁≡η₂ (g₁≡g₂ refl)
 church-encode-is-natural {g₁} {g₂} (β ϕ n) g₁≡g₂ {A} {η₁} {η₂} η₁≡η₂ {β₁} {β₂} β₁≡β₂ =
@@ -562,17 +583,17 @@ Rnorm-lemma : {Γ : Cxt} {σ : type}
 
 Rnorm-lemma γ₁ γ₂ Zero Rnorm-γs = Rnorm-Zero
 
-Rnorm-lemma γ₁ γ₂ (Succ t) Rnorm-γs =
+Rnorm-lemma γ₁ γ₂ (Succ t) Rnorm-γs {A} =
  B⋆-functor succ ⟦ close ⌜ t ⌝ γ₂ ⟧₀         ≡⟨ I ⟩
  B⋆-functor succ (church-encode (B⟦ t ⟧ γ₁)) ≡＝⟨ II ⟩
  church-encode (B-functor succ (B⟦ t ⟧ γ₁))  ∎
  where
   I : B⋆-functor succ ⟦ close ⌜ t ⌝ γ₂ ⟧₀
-       ≡ B⋆-functor succ (church-encode (B⟦ t ⟧ γ₁))
+       ≡[ ⌜B⌝ ι A ] B⋆-functor succ (church-encode (B⟦ t ⟧ γ₁))
   I = B⋆-functor≡B⋆-functor succ≡succ (Rnorm-lemma γ₁ γ₂ t Rnorm-γs)
 
   II : B⋆-functor succ (church-encode (B⟦ t ⟧ γ₁))
-        ≡ church-encode (B-functor succ (B⟦ t ⟧ γ₁))
+        ≡[ ⌜B⌝ ι A ] church-encode (B-functor succ (B⟦ t ⟧ γ₁))
   II = church-encode-is-natural (B⟦ t ⟧ γ₁) succ≡succ
 
 Rnorm-lemma {Γ} {σ} γ₁ γ₂ (Rec t u v) Rnorm-γs =
@@ -708,15 +729,40 @@ dialogue-tree-agreement t = Rnorm-lemma₀ t generic ⌜generic⌝ Rnorm-generic
   α≡α = ap α
 
 -- TODO should this be moved
-⌜dialogue⌝ : {Γ : Cxt}
-           → T (B-context【 Γ 】 ((ι ⇒ ι) ⇒ ι)) (⌜B⌝ ι ((ι ⇒ ι) ⇒ ι))
-           → T (B-context【 Γ 】 ((ι ⇒ ι) ⇒ ι)) ((ι ⇒ ι) ⇒ ι)
-⌜dialogue⌝ {Γ} t = t · ƛ (ƛ ν₁) · ƛ (ƛ (ƛ (ν₂ · (ν₀ · ν₁) · ν₀)))
+⌜dialogue⌝ : T₀ ((⌜B⌝ ι ((ι ⇒ ι) ⇒ ι)) ⇒ ((ι ⇒ ι) ⇒ ι))
+⌜dialogue⌝ = ƛ (ν₀ · ƛ (ƛ ν₁) · ƛ (ƛ (ƛ (ν₂ · (ν₀ · ν₁) · ν₀))))
 
 -- Same as ⌜dialogue-tree⌝-correct but using an internal dialogue function
 ⌜dialogue-tree⌝-correct' : (t : T₀ ((ι ⇒ ι) ⇒ ι))
                            (α : Baire)
-                         → ⟦ t ⟧₀ α ＝ ⟦ ⌜dialogue⌝ (⌜dialogue-tree⌝ t) ⟧₀ α
+                         → ⟦ t ⟧₀ α ＝ ⟦ ⌜dialogue⌝ · (⌜dialogue-tree⌝ t) ⟧₀ α
 ⌜dialogue-tree⌝-correct' t α = ⌜dialogue-tree⌝-correct t α
+
+-- trying something
+
+--Rnorm : {σ : type} (d : B〖 σ 〗) (t : {A : type} → T₀ (B-type〖 σ 〗 A)) → Type
+Rint : {σ : type} (α : T₀ (ι ⇒ ι)) (t : T₀ σ) (p : T₀ (B-type〖 σ 〗 ((ι ⇒ ι) ⇒ ι))) → Type
+Rint {ι}     α n t =  ⟦ n ⟧₀ ＝ ⟦ ⌜dialogue⌝ · t · α ⟧₀
+Rint {σ ⇒ τ} α t p = (u : T₀ σ) (v : T₀ (B-type〖 σ 〗 ((ι ⇒ ι) ⇒ ι)))
+                     → Rint α u v → Rint α (t · u) (p · v)
+
+assumption2 : (α : T₀ (ι ⇒ ι)) (f : T₀ (ι ⇒ ι)) (g : T₀ (ι ⇒ ⌜B⌝ ι ((ι ⇒ ι) ⇒ ι)))
+            → ((n : T₀ ι) → Rint α (f · n) (g · n))
+            → Rint α f (⌜kleisli-extension⌝ · g)
+assumption2 α f g rfg n d rnd = goal
+ where
+  step1 : ⟦ f · n ⟧₀ ＝ ⟦ ⌜dialogue⌝ · (g · n) · α ⟧₀
+  step1 = rfg n
+
+  step2 : ⟦ ⌜dialogue⌝ · (g · n) · α ⟧₀ ＝ ⟦ ⌜dialogue⌝ · (g · (⌜dialogue⌝ · d · α)) · α ⟧₀
+  step2 = ap (λ x → ⟦ ⌜dialogue⌝ ⟧₀ (⟦ g ⟧₀ x) ⟦ α ⟧₀) rnd
+
+  step3 : ⟦ ⌜dialogue⌝ · (g · (⌜dialogue⌝ · d · α)) · α ⟧₀
+           ＝ ⟦ ⌜dialogue⌝ · (⌜kleisli-extension⌝ · g · d) · α ⟧₀
+  step3 = {!!}
+
+  goal : ⟦ f · n ⟧₀ ＝ ⟦ ⌜dialogue⌝ · (⌜kleisli-extension⌝ · g · d) · α ⟧₀
+  goal = step1 ∙ step2 ∙ step3
+
 
 \end{code}
